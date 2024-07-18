@@ -20,7 +20,7 @@ func TestRandomCharInsert(t *testing.T) {
 
 func TestTravelDistance(t *testing.T) {
 	k := NewEmpty(
-    9,9,
+    8,8,
 		SetLayout(map[rune]key.Position{
       rune('r'): {X: 1, Y: 8},
       rune('a'): {X: 8, Y: 1},
