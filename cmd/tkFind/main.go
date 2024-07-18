@@ -28,6 +28,7 @@ func main() {
 	var bestK *keyboard.Keyboard
 	var loopKeyboards []*keyboard.Keyboard
 
+  // initial setup of 0 generation of keyboards
 	if len(e.Keyboards) != 0 {
 		fmt.Println("initial layout:")
 		e.Keyboards[0].Print()
@@ -48,9 +49,10 @@ func main() {
   accumulationK := make([]*keyboard.Keyboard, 0)
 	i := 0
 	loop, ok := true, true
+  // main loop of finding optiomal keyboard
 	for loop {
 		fmt.Printf(
-			"\rGen: %d, Last metric: %.2f ''",
+			"\rGen: %d, Last metric: %.2f",
 			i,
 			e.GetMetricLast(),
 		)
@@ -109,17 +111,15 @@ func main() {
 		select {
 		case <-sigs:
 			// If Ctrl+C is pressed, exit the loop
-			fmt.Println("\nReceived Ctrl+C, exiting loop")
+			fmt.Println("\nReceived Ctrl+C. Exiting...")
 			loop = false
 		default:
 		}
 	}
+  // closing and cleaning up
 	close(sigs)
 
 	fmt.Println("Best distance: ", bestK.Distance)
 	bestK.Print()
 	bestK.PrintYamlFormat()
-
-	// Handle cleanup or final tasks here if needed
-	fmt.Println("Exiting...")
 }
