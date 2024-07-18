@@ -169,7 +169,7 @@ func (e *Evolution) GetInitPopulation() int {
 }
 
 func PopulationSizeNext(percentile float64, population int) int {
-	return int(math.Floor(float64(population) * percentile))
+	return int(math.Ceil(float64(population) * percentile))
 }
 
 func (e *Evolution) SetPopulation(num int) {
