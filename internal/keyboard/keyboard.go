@@ -348,3 +348,28 @@ func (k *Keyboard) Print() {
 		fmt.Println()
 	}
 }
+
+func (k *Keyboard) PrintYamlFormat() {
+	layout := make([][]string, 9)
+
+	for i := 0; i < len(layout); i++ {
+		layout[i] = make([]string, 9)
+		for j := 0; j < len(layout[0]); j++ {
+			layout[i][j] = ""
+		}
+	}
+
+	for char, key := range k.Layout {
+		layout[int(key.Position.Y)][int(key.Position.X)] = string(char)
+	}
+
+  fmt.Println("[")
+	for row := range layout {
+    fmt.Print("  [")
+		for char := range layout[row] {
+			fmt.Printf(`"%s",`, layout[row][char])
+		}
+		fmt.Println("],")
+	}
+  fmt.Println("]")
+}

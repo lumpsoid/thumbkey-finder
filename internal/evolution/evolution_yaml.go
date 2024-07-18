@@ -26,6 +26,7 @@ type ConfigYaml struct {
 	Threads             int                 `yaml:"threads"`
 	CharSet             string              `yaml:"characters"`
 	InitPopulation      int                 `yaml:"init_population"`
+	MinPopulation       int                 `yaml:"min_population"`
 	Percentile          float64             `yaml:"pass_percentile"`
 	MutationProbability float64             `yaml:"mutation_probability"`
 	KeyboardConfig      *KeyboardConfigYaml `yaml:"keyboard"`
@@ -100,17 +101,17 @@ func ParseLayout(height, width int, l [][]string, w [][]float64) *keyboard.Keybo
 	}
 
 	k := keyboard.NewEmpty(height, width)
-  k.Weights = w
+	k.Weights = w
 
 	for r := 0; r < rows; r++ {
 		for c := 0; c < len(l[r]); c++ {
 			char := l[r][c]
-      if char == "" {
-        continue
-      }
+			if char == "" {
+				continue
+			}
 			err := k.InsertKey([]rune(char)[0], key.New(key.Position{X: float64(c), Y: float64(r)}))
 			if err != nil {
-        fmt.Println(err)
+				fmt.Println(err)
 				return nil
 			}
 		}
@@ -158,18 +159,19 @@ func FromYaml(filePath string) (*Evolution, error) {
 		c.KeyboardConfig.Height,
 		c.KeyboardConfig.Width,
 		c.KeyboardConfig.Layout,
-    c.KeyboardConfig.Weights,
+		c.KeyboardConfig.Weights,
 	)
-  if kP != nil {
-    keyboardsPool = append(keyboardsPool, kP)
-  }
+	if kP != nil {
+		keyboardsPool = append(keyboardsPool, kP)
+	}
 
 	return &Evolution{
 		Threads:             c.Threads,
 		initPopulation:      c.InitPopulation,
 		Population:          c.InitPopulation,
-		MutationProbability: c.MutationProbability,
+		MinPopulation:       c.MinPopulation,
 		Percentile:          c.Percentile,
+		MutationProbability: c.MutationProbability,
 		KeyboardConfig:      kC,
 		Keyboards:           keyboardsPool,
 		TestText:            testText,

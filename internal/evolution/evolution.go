@@ -38,6 +38,7 @@ type Evolution struct {
 	initPopulation      int
 	Population          int
 	Percentile          float64
+  MinPopulation       int
 	MutationProbability float64
 	KeyboardConfig      *KeyboardConfiguration
 	Keyboards           []*keyboard.Keyboard // in the descending order

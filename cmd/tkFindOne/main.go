@@ -24,4 +24,6 @@ func main() {
   e.TestKeyboards()
   e.Keyboards[0].Print()
   fmt.Println("Best distance: ", e.Keyboards[0].Distance)
+	e.Keyboards[0].Print()
+	e.Keyboards[0].PrintYamlFormat()
 }

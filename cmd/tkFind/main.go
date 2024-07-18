@@ -25,27 +25,27 @@ func main() {
 		panic(err)
 	}
 
-  var bestK *keyboard.Keyboard
-  var loopKeyboards []*keyboard.Keyboard
+	var bestK *keyboard.Keyboard
+	var loopKeyboards []*keyboard.Keyboard
 
-  if len(e.Keyboards) != 0 {
-    fmt.Println("init layout get")
-    e.Keyboards[0].Print()
-    loopKeyboards = e.Keyboards
-  } else {
-    loopKeyboards, err = e.GenerateKeyboardsThreads(e.GetInitPopulation())
-    if err != nil {
-      panic(err)
-    }
-    e.SetKeyboards(loopKeyboards)
-  }
-  e.TestKeyboardsThreads(loopKeyboards)
-  e.SortKeyboards(loopKeyboards)
-  e.AppendMetric(loopKeyboards[0].Distance)
-  // TODO KeyboardConfig.Layout start search from giver layout
-  bestK = loopKeyboards[0]
+	if len(e.Keyboards) != 0 {
+		fmt.Println("initial layout:")
+		e.Keyboards[0].Print()
+		loopKeyboards = e.Keyboards
+	} else {
+		loopKeyboards, err = e.GenerateKeyboardsThreads(e.GetInitPopulation())
+		if err != nil {
+			panic(err)
+		}
+		e.SetKeyboards(loopKeyboards)
+	}
+	e.TestKeyboardsThreads(loopKeyboards)
+	e.SortKeyboards(loopKeyboards)
+	e.AppendMetric(loopKeyboards[0].Distance)
+	// TODO KeyboardConfig.Layout start search from giver layout
+	bestK = loopKeyboards[0]
 
-	accumulationK := make([]*keyboard.Keyboard, 0)
+  accumulationK := make([]*keyboard.Keyboard, 0)
 	i := 0
 	loop, ok := true, true
 	for loop {
@@ -72,8 +72,9 @@ func main() {
 			bestK.Print()
 		}
 
-		loopKeyboards, ok = e.FilterPopulation(loopKeyboards, e.Percentile)
-
+		if e.MinPopulation != 0 && len(loopKeyboards) > e.MinPopulation {
+			loopKeyboards, ok = e.FilterPopulation(loopKeyboards, e.Percentile)
+		}
 		e.SetKeyboards(loopKeyboards)
 
 		if !ok {
@@ -92,7 +93,7 @@ func main() {
 				}
 				copy(transferK, loopKeyboards)
 				accumulationK = make([]*keyboard.Keyboard, 0)
-        clear(transferK)
+				clear(transferK)
 			} else {
 				loopKeyboards, err = e.GenerateKeyboardsThreads(e.GetInitPopulation())
 				if err != nil {
@@ -113,9 +114,11 @@ func main() {
 		default:
 		}
 	}
+	close(sigs)
 
-	bestK.Print()
 	fmt.Println("Best distance: ", bestK.Distance)
+	bestK.Print()
+	bestK.PrintYamlFormat()
 
 	// Handle cleanup or final tasks here if needed
 	fmt.Println("Exiting...")
