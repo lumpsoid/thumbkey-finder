@@ -7,6 +7,7 @@ import (
 	"slices"
 	"tkOptimizer/internal/key"
 	"tkOptimizer/internal/keyboard"
+	"tkOptimizer/internal/layout"
 )
 
 // Height and Width are 0 based X and Y coordinates
@@ -14,6 +15,7 @@ type KeyboardConfiguration struct {
 	Height  int
 	Width   int
 	Weights keyboard.Weights
+	Layout  layout.Layout
 	CharSet []rune
 }
 
@@ -23,12 +25,14 @@ func NewKeyboardConfig(
 	height int,
 	width int,
 	weights [][]float64,
+	layout layout.Layout,
 	charSet []rune,
 ) *KeyboardConfiguration {
 	return &KeyboardConfiguration{
 		Height:  height,
 		Width:   width,
 		Weights: weights,
+		Layout:  layout,
 		CharSet: charSet,
 	}
 }
@@ -36,12 +40,10 @@ func NewKeyboardConfig(
 type Evolution struct {
 	Threads             int
 	initPopulation      int
-	Population          int
 	Percentile          float64
-  MinPopulation       int
+	MinPopulation       int
 	MutationProbability float64
 	KeyboardConfig      *KeyboardConfiguration
-	Keyboards           []*keyboard.Keyboard // in the descending order
 	TestText            string
 	MetricHistory       []float64
 }
@@ -52,7 +54,7 @@ func New(
 	persentile float64,
 	mutationProbability float64,
 	config *KeyboardConfiguration,
-	textString string,
+	textTest string,
 ) (*Evolution, error) {
 	if numKeyboards%2 != 0 {
 		return nil, errors.New("even number of init keyboards")
@@ -62,10 +64,9 @@ func New(
 		Threads:             threads,
 		initPopulation:      numKeyboards,
 		MutationProbability: mutationProbability,
-		Population:          0,
 		Percentile:          persentile,
 		KeyboardConfig:      config,
-		TestText:            textString,
+		TestText:            textTest,
 		MetricHistory:       history,
 	}, nil
 }
@@ -152,16 +153,8 @@ func Recombination(
 	return keyboardMerged, nil
 }
 
-func (e *Evolution) SortKeyboards(k []*keyboard.Keyboard) {
+func SortKeyboards(k []*keyboard.Keyboard) {
 	slices.SortFunc(k, keyboard.SortCMPDes)
-}
-
-func (e *Evolution) SetKeyboards(k []*keyboard.Keyboard) {
-	e.Keyboards = k
-}
-
-func (e *Evolution) AppendKeyboard(k *keyboard.Keyboard) {
-	e.Keyboards = append(e.Keyboards, k)
 }
 
 func (e *Evolution) GetInitPopulation() int {
@@ -170,10 +163,6 @@ func (e *Evolution) GetInitPopulation() int {
 
 func PopulationSizeNext(percentile float64, population int) int {
 	return int(math.Ceil(float64(population) * percentile))
-}
-
-func (e *Evolution) SetPopulation(num int) {
-	e.Population = num
 }
 
 func (e *Evolution) AppendMetric(result float64) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"tkOptimizer/internal/key"
+	"tkOptimizer/internal/layout"
 )
 
 type Weights [][]float64
@@ -26,7 +27,7 @@ func (w *Weights) Check(height int, width int) error {
 type Keyboard struct {
 	height    int
 	width     int
-	Layout    map[rune]*key.Key
+	Layout    layout.Layout
 	Weights   Weights
 	Positions map[int]map[int]int
 	Distance  float64

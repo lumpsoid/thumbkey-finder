@@ -4,10 +4,14 @@ import (
 	"tkOptimizer/internal/keyboard"
 )
 
-func (e *Evolution) RecombineWithOne(k []*keyboard.Keyboard, one *keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
+func RecombineWithOne(
+  k []*keyboard.Keyboard, 
+  mutationProbability float64, 
+  one *keyboard.Keyboard,
+) ([]*keyboard.Keyboard, error) {
   variantsNew := make([]*keyboard.Keyboard, len(k))
   for i, k2 := range k {
-    kM, err := Recombination(e.MutationProbability, one, k2)
+    kM, err := Recombination(mutationProbability, one, k2)
     if err != nil {
       return nil, err
     }
@@ -16,7 +20,12 @@ func (e *Evolution) RecombineWithOne(k []*keyboard.Keyboard, one *keyboard.Keybo
   return variantsNew, nil
 }
 
-func (e *Evolution) RecombineWithOneThreads(threads int, k []*keyboard.Keyboard, one *keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
+func RecombineWithOneThreads(
+  threads int, 
+  k []*keyboard.Keyboard, 
+  mutationProbability float64, 
+  one *keyboard.Keyboard,
+) ([]*keyboard.Keyboard, error) {
   variantsNew := make([]*keyboard.Keyboard, len(k))
   errorChan := make(chan error, 10)
   jobs := make(chan *keyboard.Keyboard, len(k))
@@ -25,7 +34,7 @@ func (e *Evolution) RecombineWithOneThreads(threads int, k []*keyboard.Keyboard,
   for w := 1; w <= threads; w++ {
     go func() {
       for j := range jobs {
-        kM, err := Recombination(e.MutationProbability, one, j)
+        kM, err := Recombination(mutationProbability, one, j)
         if err != nil {
           errorChan <- err
           return
@@ -55,13 +64,17 @@ func (e *Evolution) RecombineWithOneThreads(threads int, k []*keyboard.Keyboard,
   return variantsNew, nil
 }
 
-func (e *Evolution) FilterPopulation(k []*keyboard.Keyboard, percentile float64) ([]*keyboard.Keyboard, bool) {
+func FilterPopulation(
+  k []*keyboard.Keyboard, 
+  percentile float64, 
+  minPopulation int,
+) ([]*keyboard.Keyboard, bool) {
   filteredNumber := PopulationSizeNext(percentile, len(k))
+  if filteredNumber <= 1 {
+    return k, false
+  }
   if !IsEven(filteredNumber) {
     filteredNumber--
-  }
-  if filteredNumber == 0 {
-    return k, false
   }
   filtered := make([]*keyboard.Keyboard, filteredNumber)
   for i := 0; i < filteredNumber; i++ {

@@ -1,6 +1,7 @@
 package keyboard
 
-import "tkOptimizer/internal/key"
+import "tkOptimizer/internal/layout"
+
 
 type KeyboardOption func(*Keyboard)
 
@@ -22,12 +23,8 @@ func SetWeights(weights Weights) KeyboardOption {
 	}
 }
 
-func SetLayout(layout map[rune]key.Position) KeyboardOption {
-	newLayout := make(map[rune]*key.Key)
-	for char, pos := range layout {
-		newLayout[char] = key.New(pos)
-	}
+func SetLayout(layout layout.Layout) KeyboardOption {
 	return func(keyboard *Keyboard) {
-		keyboard.Layout = newLayout
+		keyboard.Layout = layout
 	}
 }

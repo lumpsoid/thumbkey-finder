@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+	"tkOptimizer/internal/layout"
 )
 
 func TestRecombinationSingle(t *testing.T) {
@@ -13,7 +14,8 @@ func TestRecombinationSingle(t *testing.T) {
     1.0,
     0.001,
     NewKeyboardConfig(
-      8, 8, [][]float64{},
+      8, 8,
+      [][]float64{}, layout.Layout{},
       []rune("abcdefgklmnoprsthqwvx"),
     ),
     "one,two,thre,four,five,six",
@@ -22,12 +24,12 @@ func TestRecombinationSingle(t *testing.T) {
     t.Error(err)
     return
   }
-  err = e.GenerateKeyboards(e.Population)
+  genK, err := GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation())
   if err != nil {
     t.Error(err)
     return
   }
-  err = e.Recombine()
+  genK, err = Recombine(genK, e.MutationProbability)
   if err != nil {
     t.Error(err)
     return
@@ -41,7 +43,8 @@ func TestRecombinationThreads(t *testing.T) {
     1.0,
     0.001,
     NewKeyboardConfig(
-      8, 8, [][]float64{},
+      8, 8,
+      [][]float64{}, layout.Layout{},
       []rune("abcdefgklmnoprsthqwvx"),
     ),
     "one,two,thre,four,five,six",
@@ -50,12 +53,12 @@ func TestRecombinationThreads(t *testing.T) {
     t.Error(err)
     return
   }
-  kN, err := e.GenerateKeyboardsThreads(e.Population)
+  kN, err := GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation())
   if err != nil {
     t.Error(err)
     return
   }
-  kN, err = e.RecombineThreads(kN)
+  kN, err = e.RecombineThreads(e.Threads, kN)
   if err != nil {
     t.Error(err)
     return
@@ -69,7 +72,8 @@ func TestRunSingle(t *testing.T) {
     0.2,
     0.05,
     NewKeyboardConfig(
-      8, 8, [][]float64{},
+      8, 8,
+      [][]float64{}, layout.Layout{},
       []rune("abcdefgklmnoprsthqwvx"),
     ),
     "one,two,thre,four,five,six",
@@ -78,7 +82,8 @@ func TestRunSingle(t *testing.T) {
     t.Error(err)
     return
   }
-  err = e.Run()
+  genK, err := GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation())
+  genK, err = Run(e, genK)
   if err != nil {
     t.Error(err)
     return
@@ -102,13 +107,14 @@ func TestRunThreads(t *testing.T) {
   //  t.Error(err)
   //  return
   //}
+  k, err := GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation())
 
-  err = e.RunThreads()
+  k, err = Run(e, k)
   if err != nil {
     t.Error(err)
   }
-  e.TestKeyboards()
-  t.Log("Best keyboard: ", e.Keyboards[0].Distance)
+  TestKeyboards(k, e.TestText)
+  t.Log("Best keyboard: ", k[0].Distance)
   t.Error()
 }
 

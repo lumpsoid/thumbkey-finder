@@ -2,7 +2,6 @@ package evolution
 
 import (
 	"fmt"
-	"math"
 	"tkOptimizer/internal/keyboard"
 )
 
@@ -13,18 +12,21 @@ func GetLenOr1000(num int) int {
   return 1000
 }
 
-func (e *Evolution) GenerateKeyboardsThreads(population int) ([]*keyboard.Keyboard, error) {
-  numWorkers := e.Threads
+func GenerateKeyboardsThreads(
+  threads int, 
+  config *KeyboardConfiguration, 
+  population int,
+) ([]*keyboard.Keyboard, error) {
 	jobs := make(chan int, population)
 	results := make(chan *keyboard.Keyboard, GetLenOr1000(population))
 	errorChan := make(chan error, 10)
 
-  weights := e.KeyboardConfig.Weights
-  height := e.KeyboardConfig.Height
-  width := e.KeyboardConfig.Width
-  charSet := e.KeyboardConfig.CharSet
+  weights := config.Weights
+  height := config.Height
+  width := config.Width
+  charSet := config.CharSet
 
-	for w := 1; w <= numWorkers; w++ {
+	for w := 1; w <= threads; w++ {
 		go func() {
       for range jobs {
         var k *keyboard.Keyboard
@@ -73,15 +75,14 @@ func (e *Evolution) GenerateKeyboardsThreads(population int) ([]*keyboard.Keyboa
 	return newKeyboards, nil
 }
 
-func (e *Evolution) TestKeyboardsThreads(k []*keyboard.Keyboard) {
-  numWorkers := e.Threads
+func TestKeyboardsThreads(threads int, k []*keyboard.Keyboard, testText string) {
 	jobs := make(chan *keyboard.Keyboard, len(k))
 	results := make(chan int, GetLenOr1000(len(k)))
 
-	for w := 1; w <= numWorkers; w++ {
+	for w := 1; w <= threads; w++ {
 		go func() {
       for k := range jobs {
-        k.TravelDistance(e.TestText)
+        k.TravelDistance(testText)
         results <- 1
       }
     }()
@@ -111,24 +112,22 @@ func recombineWorkerThreads(
 	resultChan <- mergeKeyboard
 }
 
-func (e *Evolution) RecombineThreads(k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
-  numWorkers := e.Threads
-	passNumber := math.Floor(e.Percentile * float64(len(e.Keyboards)))
-	passNumberInt := int(passNumber)
-	if !IsEven(passNumberInt) {
-		passNumberInt -= 1
+func (e *Evolution) RecombineThreads(threads int, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
+  kLen := len(k)
+	if !IsEven(kLen) {
+		kLen -= 1
 	}
-	if passNumberInt < 2 {
+	if kLen < 2 {
     fmt.Println("Keyboards len < 2")
-		return nil, nil
+		return k, nil
 	}
 
-	semaphore := make(chan int, numWorkers)
-	keyboardChan := make(chan *keyboard.Keyboard, passNumberInt/2)
+	semaphore := make(chan int, threads)
+	keyboardChan := make(chan *keyboard.Keyboard, kLen/2)
 	errorChan := make(chan error, 5)
 
 	// Launch worker goroutines
-	for i := 0; i < passNumberInt; i += 2 {
+	for i := 0; i < kLen; i += 2 {
 		semaphore <- 1 // Acquire a semaphore slot
 
 		go func(k1, k2 *keyboard.Keyboard) {
@@ -142,45 +141,25 @@ func (e *Evolution) RecombineThreads(k []*keyboard.Keyboard) ([]*keyboard.Keyboa
 				return
 			}
 			keyboardChan <- mK
-		}(e.Keyboards[i], e.Keyboards[i+1])
+		}(k[i], k[i+1])
 	}
 
 	// Process keyboards as they become available
-	nextGen := make([]*keyboard.Keyboard, passNumberInt/2)
-	for i := 0; i < len(nextGen); i++ {
+	nextGen := make([]*keyboard.Keyboard, kLen/2)
+	for j := 0; j < len(nextGen); j++ {
 		select {
 		case k := <-keyboardChan:
-			nextGen[i] = k
+			nextGen[j] = k
 		case err := <-errorChan:
 			close(keyboardChan)
 			close(errorChan)
 			return nil, err
 		}
 	}
-
 	// Close channels after all processing is done
 	close(keyboardChan)
 	close(errorChan)
 
 	return nextGen, nil
-}
-
-func (e *Evolution) RunThreads() error {
-  nK, err := e.GenerateKeyboardsThreads(
-    PopulationSizeNext(e.Percentile, e.Population))
-  if err != nil {
-    return err
-  }
-	for math.Floor(e.Percentile * float64(len(e.Keyboards))) > 2 {
-		e.TestKeyboardsThreads(nK)
-    e.SortKeyboards(nK)
-    e.AppendMetric(nK[0].Distance)
-    e.SetKeyboards(nK)
-    nK, err = e.RecombineThreads(nK)
-    if err != nil {
-      return err
-    }
-	}
-  return nil
 }
 

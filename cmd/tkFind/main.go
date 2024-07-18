@@ -29,21 +29,29 @@ func main() {
 	var loopKeyboards []*keyboard.Keyboard
 
   // initial setup of 0 generation of keyboards
-	if len(e.Keyboards) != 0 {
+	if len(e.KeyboardConfig.Layout) != 0 {
 		fmt.Println("initial layout:")
-		e.Keyboards[0].Print()
-		loopKeyboards = e.Keyboards
+    kFromLayout := keyboard.NewEmpty(
+      e.KeyboardConfig.Height,
+      e.KeyboardConfig.Width,
+      keyboard.SetLayout(e.KeyboardConfig.Layout),
+      keyboard.SetWeights(e.KeyboardConfig.Weights),
+    )
+    kFromLayout.Print()
+		loopKeyboards = []*keyboard.Keyboard{kFromLayout}
 	} else {
-		loopKeyboards, err = e.GenerateKeyboardsThreads(e.GetInitPopulation())
+		loopKeyboards, err = evolution.GenerateKeyboardsThreads(
+      e.Threads, 
+      e.KeyboardConfig,
+      e.GetInitPopulation(),
+    )
 		if err != nil {
 			panic(err)
 		}
-		e.SetKeyboards(loopKeyboards)
 	}
-	e.TestKeyboardsThreads(loopKeyboards)
-	e.SortKeyboards(loopKeyboards)
+	evolution.TestKeyboardsThreads(e.Threads, loopKeyboards, e.TestText)
+	evolution.SortKeyboards(loopKeyboards)
 	e.AppendMetric(loopKeyboards[0].Distance)
-	// TODO KeyboardConfig.Layout start search from giver layout
 	bestK = loopKeyboards[0]
 
   accumulationK := make([]*keyboard.Keyboard, 0)
@@ -57,15 +65,16 @@ func main() {
 			e.GetMetricLast(),
 		)
 
-		loopKeyboards, err = e.RecombineWithOne(
+		loopKeyboards, err = evolution.RecombineWithOne(
 			loopKeyboards,
+      e.MutationProbability,
 			bestK,
 		)
 		if err != nil {
 			panic(err)
 		}
-		e.TestKeyboardsThreads(loopKeyboards)
-		e.SortKeyboards(loopKeyboards)
+		evolution.TestKeyboardsThreads(e.Threads, loopKeyboards, e.TestText)
+		evolution.SortKeyboards(loopKeyboards)
 		e.AppendMetric(loopKeyboards[0].Distance)
 
 		if loopKeyboards[0].Distance < bestK.Distance {
@@ -75,11 +84,17 @@ func main() {
 		}
 
 		if e.MinPopulation != 0 && len(loopKeyboards) > e.MinPopulation {
-			loopKeyboards, ok = e.FilterPopulation(loopKeyboards, e.Percentile)
+			loopKeyboards, ok = evolution.FilterPopulation(
+        loopKeyboards, 
+        e.Percentile, 
+        e.MinPopulation,
+      )
 		}
-		e.SetKeyboards(loopKeyboards)
 
 		if !ok {
+      if e.MinPopulation != 0 && e.MinPopulation == 1 {
+        loop = false 
+      }
 			if len(accumulationK) != 0 {
 				if loopKeyboards[0].Distance < accumulationK[0].Distance {
 					accumulationK = append(accumulationK, loopKeyboards[0])
@@ -97,12 +112,14 @@ func main() {
 				accumulationK = make([]*keyboard.Keyboard, 0)
 				clear(transferK)
 			} else {
-				loopKeyboards, err = e.GenerateKeyboardsThreads(e.GetInitPopulation())
+				loopKeyboards, err = evolution.GenerateKeyboardsThreads(
+          e.Threads, 
+          e.KeyboardConfig, 
+          e.GetInitPopulation(),
+        )
 				if err != nil {
 					panic(err)
 				}
-				e.SetKeyboards(loopKeyboards)
-				e.SetPopulation(e.GetInitPopulation())
 			}
 		}
 

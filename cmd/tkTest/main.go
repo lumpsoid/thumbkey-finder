@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"tkOptimizer/internal/evolution"
+	"tkOptimizer/internal/keyboard"
 )
 
 func main() {
@@ -17,7 +18,13 @@ func main() {
   if err != nil {
     panic(err)
   }
-  e.TestKeyboards()
-  e.Keyboards[0].Print()
-  fmt.Println("Distanse: ", e.Keyboards[0].Distance)
+  k := keyboard.NewEmpty(
+    e.KeyboardConfig.Height,
+    e.KeyboardConfig.Width,
+    keyboard.SetLayout(e.KeyboardConfig.Layout),
+    keyboard.SetWeights(e.KeyboardConfig.Weights),
+  )
+  k.TravelDistance(e.TestText)
+  k.Print()
+  fmt.Println("Distanse: ", k.Distance)
 }

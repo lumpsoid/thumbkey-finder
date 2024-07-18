@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"tkOptimizer/internal/key"
+	"tkOptimizer/internal/layout"
 )
 
 func TestRandomCharInsert(t *testing.T) {
@@ -21,10 +22,10 @@ func TestRandomCharInsert(t *testing.T) {
 func TestTravelDistance(t *testing.T) {
 	k := NewEmpty(
     8,8,
-		SetLayout(map[rune]key.Position{
-      rune('r'): {X: 1, Y: 8},
-      rune('a'): {X: 8, Y: 1},
-    }),
+		SetLayout(layout.Parse(map[string]key.Position{
+      "r": {X: 1, Y: 8},
+      "a": {X: 8, Y: 1},
+    })),
 	)
   k.GenerateWeigths(1.0)
 

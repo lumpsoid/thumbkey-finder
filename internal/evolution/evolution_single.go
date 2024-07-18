@@ -1,18 +1,16 @@
 package evolution
 
 import (
-	"fmt"
-	"math"
 	"tkOptimizer/internal/keyboard"
 )
 
-func (e *Evolution) GenerateKeyboards(population int) error {
-	height := e.KeyboardConfig.Height
-	width := e.KeyboardConfig.Width
-	weights := e.KeyboardConfig.Weights
-	charSet := e.KeyboardConfig.CharSet
+func GenerateKeyboards(config *KeyboardConfiguration, population int) ([]*keyboard.Keyboard, error) {
+	height := config.Height
+	width := config.Width
+	weights := config.Weights
+	charSet := config.CharSet
 
-  keyboardsNew := make([]*keyboard.Keyboard, 0)
+  genNew := make([]*keyboard.Keyboard, population)
 	for i := 0; i < population; i++ {
 		var k *keyboard.Keyboard
 		var err error
@@ -22,75 +20,91 @@ func (e *Evolution) GenerateKeyboards(population int) error {
 				height, width, weights, charSet,
 			)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		} else {
 			k, err = keyboard.GenerateNew(height, width, charSet)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
-    keyboardsNew = append(keyboardsNew, k)
+    genNew[i] = k
 	}
 
-  e.SetKeyboards(keyboardsNew)
-	return nil
+	return genNew, nil
 }
 
-func (e *Evolution) TestKeyboards() {
-	for i := 0; i < len(e.Keyboards); i++ {
-    e.Keyboards[i].TravelDistance(e.TestText)
+func TestKeyboards(k []*keyboard.Keyboard, testText string) {
+	for i := 0; i < len(k); i++ {
+    k[i].TravelDistance(testText)
 	}
-  if len(e.Keyboards) > 1 {
-    e.SortKeyboards(e.Keyboards)
-  }
-	e.AppendMetric(e.Keyboards[0].Distance)
 }
 
-func (e *Evolution) Recombine() error {
-	passNumber := math.Floor(e.Percentile * float64(len(e.Keyboards)))
-	passNumberInt := int(passNumber)
-	if !IsEven(passNumberInt) {
-		passNumberInt -= 1
-	}
-	fmt.Println("passNumber of keyboards: ", passNumberInt)
-	if passNumberInt < 2 {
-		return nil
+func Recombine(
+  k []*keyboard.Keyboard, 
+  mutationProbability float64,
+) ([]*keyboard.Keyboard, error) {
+  keyboardLen := len(k)
+	if !IsEven(keyboardLen) {
+		keyboardLen -= 1
 	}
 
 	nextGen := make([]*keyboard.Keyboard, 0)
-	fmt.Println("NextGen keyboards count before: ", len(nextGen))
-	for i := 0; i < passNumberInt; i += 2 {
+	for i := 0; i < keyboardLen; i += 2 {
 		mK, err := Recombination(
-			e.MutationProbability,
-			e.Keyboards[i],
-			e.Keyboards[i+1],
+			mutationProbability,
+			k[i],
+			k[i+1],
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		nextGen = append(nextGen, mK)
 	}
-	e.Keyboards = nextGen
-	fmt.Println("NextGen keyboards count after: ", len(nextGen))
-
-	return nil
+	return nextGen, nil
 }
 
-func (e *Evolution) Run() error {
-  err := e.GenerateKeyboards(e.GetInitPopulation())
-  if err != nil {
-    return err
-  }
-	for len(e.Keyboards) > 2 {
-		fmt.Println("Gen: ", len(e.MetricHistory))
-		e.TestKeyboards()
-		fmt.Println("Best distance: ", e.MetricHistory[len(e.MetricHistory)-1])
-		err = e.Recombine()
-    if err != nil {
-      return err
-    }
-		fmt.Println("Keyboards count: ", len(e.Keyboards))
+func Run(e *Evolution, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
+	var err error
+	var ok bool
+
+	for len(k) > 2 {
+		existMinPopulation := e.MinPopulation != 0
+
+    TestKeyboards(k, e.TestText)
+    SortKeyboards(k)
+		e.AppendMetric(k[0].Distance)
+
+		if e.Threads == 1 {
+			k, err = Recombine(k, e.MutationProbability)
+		} else {
+			k, err = e.RecombineThreads(e.Threads, k)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		if existMinPopulation && len(k) > e.MinPopulation {
+			k, ok = FilterPopulation(k, e.Percentile, e.MinPopulation)
+		}
+
+		if !ok {
+			if e.MinPopulation == 1 {
+				return k, nil
+			}
+
+			if e.Threads == 1 {
+				k, err = GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation())
+			} else {
+				k, err = GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation())
+			}
+
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
-  return nil
+
+	return k, nil
 }
