@@ -8,13 +8,14 @@ import (
 	"tkOptimizer/internal/key"
 	"tkOptimizer/internal/keyboard"
 	"tkOptimizer/internal/layout"
+	"tkOptimizer/internal/weights"
 )
 
 // Height and Width are 0 based X and Y coordinates
 type KeyboardConfiguration struct {
 	Height  int
 	Width   int
-	Weights keyboard.Weights
+	Weights weights.Weights
 	Layout  layout.Layout
 	CharSet []rune
 }
@@ -43,6 +44,8 @@ type Evolution struct {
 	Percentile          float64
 	MinPopulation       int
 	MutationProbability float64
+	PlaceThreshold      float64
+  StaleThreshold      int
 	KeyboardConfig      *KeyboardConfiguration
 	TestText            string
 	MetricHistory       []float64
@@ -74,6 +77,7 @@ func New(
 func mergeKeyboards(
 	keyboard1 *keyboard.Keyboard,
 	keyboard2 *keyboard.Keyboard,
+	placeThreshold float64,
 ) (*keyboard.Keyboard, error) {
 	keyboardMerged := keyboard.NewEmpty(
 		keyboard1.GetHeight(),
@@ -109,7 +113,7 @@ func mergeKeyboards(
 	}
 	// insert chars which are lefted after merge both sides
 	needInsert = keyboard.ShuffleSlice(needInsert)
-	err := keyboardMerged.RandomCharInsertSafe(needInsert)
+	err := keyboardMerged.RandomCharInsertSafe(needInsert, placeThreshold)
 	if err != nil {
 		return nil, err
 	}
@@ -136,19 +140,20 @@ func Mutation(mergedKeyboard *keyboard.Keyboard, probability float64) {
 
 // keyboard1 more performant variant
 func Recombination(
-	probability float64,
+	mutationProbability float64,
+	placeThreshold float64,
 	keyboard1 *keyboard.Keyboard,
 	keyboard2 *keyboard.Keyboard,
 ) (*keyboard.Keyboard, error) {
 	if keyboard1.GetHeight() != keyboard2.GetHeight() {
 		return nil, errors.New("not equal height in keyboard1 and keyboard2")
 	}
-	keyboardMerged, err := mergeKeyboards(keyboard1, keyboard2)
+	keyboardMerged, err := mergeKeyboards(keyboard1, keyboard2, placeThreshold)
 	if err != nil {
 		return nil, err
 	}
 
-	Mutation(keyboardMerged, probability)
+	Mutation(keyboardMerged, mutationProbability)
 
 	return keyboardMerged, nil
 }

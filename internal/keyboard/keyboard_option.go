@@ -1,6 +1,9 @@
 package keyboard
 
-import "tkOptimizer/internal/layout"
+import (
+	"tkOptimizer/internal/layout"
+	"tkOptimizer/internal/weights"
+)
 
 
 type KeyboardOption func(*Keyboard)
@@ -17,7 +20,7 @@ func (k *Keyboard) Update(options ...KeyboardOption) {
 	}
 }
 
-func SetWeights(weights Weights) KeyboardOption {
+func SetWeights(weights weights.Weights) KeyboardOption {
 	return func(keyboard *Keyboard) {
 		keyboard.Weights = weights
 	}

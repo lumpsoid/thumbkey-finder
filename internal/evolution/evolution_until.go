@@ -7,11 +7,12 @@ import (
 func RecombineWithOne(
   k []*keyboard.Keyboard, 
   mutationProbability float64, 
+  placeThreshold float64, 
   one *keyboard.Keyboard,
 ) ([]*keyboard.Keyboard, error) {
   variantsNew := make([]*keyboard.Keyboard, len(k))
   for i, k2 := range k {
-    kM, err := Recombination(mutationProbability, one, k2)
+    kM, err := Recombination(mutationProbability, placeThreshold, one, k2)
     if err != nil {
       return nil, err
     }
@@ -24,6 +25,7 @@ func RecombineWithOneThreads(
   threads int, 
   k []*keyboard.Keyboard, 
   mutationProbability float64, 
+  placeThreshold float64, 
   one *keyboard.Keyboard,
 ) ([]*keyboard.Keyboard, error) {
   variantsNew := make([]*keyboard.Keyboard, len(k))
@@ -34,7 +36,7 @@ func RecombineWithOneThreads(
   for w := 1; w <= threads; w++ {
     go func() {
       for j := range jobs {
-        kM, err := Recombination(mutationProbability, one, j)
+        kM, err := Recombination(mutationProbability, placeThreshold, one, j)
         if err != nil {
           errorChan <- err
           return

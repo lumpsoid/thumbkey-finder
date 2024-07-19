@@ -24,12 +24,12 @@ func TestRecombinationSingle(t *testing.T) {
     t.Error(err)
     return
   }
-  genK, err := GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation())
+  genK, err := GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation(), e.PlaceThreshold)
   if err != nil {
     t.Error(err)
     return
   }
-  genK, err = Recombine(genK, e.MutationProbability)
+  genK, err = Recombine(genK, e.MutationProbability, e.PlaceThreshold)
   if err != nil {
     t.Error(err)
     return
@@ -53,12 +53,12 @@ func TestRecombinationThreads(t *testing.T) {
     t.Error(err)
     return
   }
-  kN, err := GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation())
+  kN, err := GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation(), e.PlaceThreshold)
   if err != nil {
     t.Error(err)
     return
   }
-  kN, err = e.RecombineThreads(e.Threads, kN)
+  kN, err = RecombineThreads(e.Threads, e.MutationProbability, e.PlaceThreshold, kN)
   if err != nil {
     t.Error(err)
     return
@@ -82,7 +82,7 @@ func TestRunSingle(t *testing.T) {
     t.Error(err)
     return
   }
-  genK, err := GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation())
+  genK, err := GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation(), e.PlaceThreshold)
   genK, err = Run(e, genK)
   if err != nil {
     t.Error(err)
@@ -107,7 +107,7 @@ func TestRunThreads(t *testing.T) {
   //  t.Error(err)
   //  return
   //}
-  k, err := GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation())
+  k, err := GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation(), e.PlaceThreshold)
 
   k, err = Run(e, k)
   if err != nil {

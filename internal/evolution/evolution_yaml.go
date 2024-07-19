@@ -9,6 +9,7 @@ import (
 	"strings"
 	"tkOptimizer/internal/key"
 	"tkOptimizer/internal/layout"
+	"tkOptimizer/internal/weights"
 
 	"github.com/goccy/go-yaml"
 )
@@ -29,6 +30,8 @@ type ConfigYaml struct {
 	MinPopulation       int                 `yaml:"min_population"`
 	Percentile          float64             `yaml:"pass_percentile"`
 	MutationProbability float64             `yaml:"mutation_probability"`
+	PlaceThreshold      float64             `yaml:"place_threshold"`
+	StaleThreshold      int                 `yaml:"stale_threshold"`
 	KeyboardConfig      *KeyboardConfigYaml `yaml:"keyboard"`
 	TextPath            string              `yaml:"text_path,omitempty"`
 	Text                string              `yaml:"text,omitempty"`
@@ -79,6 +82,12 @@ func (c *ConfigYaml) Check() error {
 	if c.MutationProbability == 0.0 {
 		return errors.New("`mutation_probability` must be in the config or greater than 0")
 	}
+	if c.PlaceThreshold == 0.0 {
+		return errors.New("`place_threshold` must be in the config or greater than 0")
+	}
+	if c.StaleThreshold == 0 {
+		return errors.New("`stale_threshold` must be in the config or greater than 0")
+	}
 	if c.KeyboardConfig.CharSet == "" {
 		return errors.New("`characters` must be in the config or greater than 0")
 	}
@@ -100,15 +109,15 @@ func ParseLayout(l [][]string) layout.Layout {
 		return layout.Layout{}
 	}
 
-  lN := layout.Layout{}
+	lN := layout.Layout{}
 	for r := 0; r < rows; r++ {
 		for c := 0; c < len(l[r]); c++ {
 			char := l[r][c]
 			if char == "" {
 				continue
 			}
-      kN := key.New(key.Position{X: float64(c), Y: float64(r)})
-      lN[[]rune(char)[0]] = kN
+			kN := key.New(key.Position{X: float64(c), Y: float64(r)})
+			lN[[]rune(char)[0]] = kN
 		}
 	}
 	return lN
@@ -139,18 +148,18 @@ func FromYaml(filePath string) (*Evolution, error) {
 
 	testText, err := c.GetText()
 
-  kL := ParseLayout(c.KeyboardConfig.Layout)
+	kL := ParseLayout(c.KeyboardConfig.Layout)
 
 	kC := NewKeyboardConfig(
 		c.KeyboardConfig.Height,
 		c.KeyboardConfig.Width,
 		c.KeyboardConfig.Weights,
-    kL,
+		kL,
 		[]rune(c.KeyboardConfig.CharSet),
 	)
 	err = kC.Weights.Check(kC.Height, kC.Width)
 	if err != nil {
-		return nil, err
+		kC.Weights = weights.New(kC.Height, kC.Width, 1)
 	}
 
 	return &Evolution{
@@ -159,6 +168,8 @@ func FromYaml(filePath string) (*Evolution, error) {
 		MinPopulation:       c.MinPopulation,
 		Percentile:          c.Percentile,
 		MutationProbability: c.MutationProbability,
+		PlaceThreshold:      c.PlaceThreshold,
+		StaleThreshold:      c.StaleThreshold,
 		KeyboardConfig:      kC,
 		TestText:            testText,
 		MetricHistory:       make([]float64, 0),

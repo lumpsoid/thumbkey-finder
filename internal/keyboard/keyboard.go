@@ -6,29 +6,14 @@ import (
 	"math/rand"
 	"tkOptimizer/internal/key"
 	"tkOptimizer/internal/layout"
+	"tkOptimizer/internal/weights"
 )
-
-type Weights [][]float64
-
-func (w *Weights) Check(height int, width int) error {
-	rows := *w
-	if len(rows) == 0 {
-		return nil
-	}
-	if len(rows)-1 != height {
-		return errors.New("weights rows are not equal to keyboard height")
-	}
-	if len(rows[0])-1 != width {
-		return errors.New("weights cols are not equal to keyboard height")
-	}
-	return nil
-}
 
 type Keyboard struct {
 	height    int
 	width     int
 	Layout    layout.Layout
-	Weights   Weights
+	Weights   weights.Weights
 	Positions map[int]map[int]int
 	Distance  float64
 }
@@ -99,19 +84,6 @@ func (k *Keyboard) SwapChars(
 	return
 }
 
-func (k *Keyboard) GenerateWeigths(filler float64) {
-	weightsNew := make([][]float64, k.height)
-
-	for i := 0; i < len(weightsNew); i++ {
-		weightsNew[i] = make([]float64, k.width)
-		for j := 0; j < len(weightsNew[0]); j++ {
-			weightsNew[i][j] = filler
-		}
-	}
-	k.Weights = weightsNew
-	return
-}
-
 func NewEmpty(height int, width int, options ...KeyboardOption) *Keyboard {
 	// Create a slice of slices with 9 inner slices
 	layout := make(map[rune]*key.Key)
@@ -129,8 +101,8 @@ func NewEmpty(height int, width int, options ...KeyboardOption) *Keyboard {
 	return keyboard
 }
 
-func probabilityToPlace(weight float64) bool {
-	return rand.Float64()*weight > 0.5
+func probabilityToPlace(weight float64, threshold float64) bool {
+	return rand.Float64()*weight > threshold
 }
 
 func (k *Keyboard) PositionExist(pos key.Position) bool {
@@ -169,7 +141,7 @@ func (k *Keyboard) InsertKey(charNew rune, keyNew *key.Key) error {
 	return nil
 }
 
-func (k *Keyboard) RandomCharInsertSafe(charSlice []rune) error {
+func (k *Keyboard) RandomCharInsertSafe(charSlice []rune, threshold float64) error {
 	rows := len(k.Weights)
 	if rows == 0 {
 		return errors.New("weights are empty")
@@ -190,7 +162,7 @@ func (k *Keyboard) RandomCharInsertSafe(charSlice []rune) error {
 			}
 		}
 		char := charSlice[i]
-		placeIt := probabilityToPlace(k.Weights[r][c])
+		placeIt := probabilityToPlace(k.Weights[r][c], threshold)
 
 		if placeIt {
 			positionNew := key.Position{X: float64(c), Y: float64(r)}
@@ -229,12 +201,13 @@ func ShuffleSlice(data []rune) []rune {
 	return shuffledData
 }
 
-func GenerateNew(height int, width int, charSet []rune) (*Keyboard, error) {
-	k := NewEmpty(height, width)
-	k.GenerateWeigths(1.0)
+func GenerateNew(height int, width int, charSet []rune, threshold float64) (*Keyboard, error) {
+	k := NewEmpty(height, width,
+    SetWeights(weights.New(height, width, 1)),
+  )
 
 	characters := ShuffleSlice(charSet)
-	err := k.RandomCharInsertSafe(characters)
+	err := k.RandomCharInsertSafe(characters, threshold)
 	if err != nil {
 		return nil, err
 	}
@@ -245,14 +218,15 @@ func GenerateNew(height int, width int, charSet []rune) (*Keyboard, error) {
 func GenerateNewWithWeights(
 	height int,
 	width int,
-	weights Weights,
+	weights weights.Weights,
 	charSet []rune,
+  threshold float64,
 ) (*Keyboard, error) {
 	k := NewEmpty(height, width)
 	k.Update(SetWeights(weights))
 
 	characters := ShuffleSlice(charSet)
-	err := k.RandomCharInsertSafe(characters)
+	err := k.RandomCharInsertSafe(characters, threshold)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +234,7 @@ func GenerateNewWithWeights(
 	return k, nil
 }
 
-func GenerateFromYaml(c *ConfigYaml) (*Keyboard, error) {
+func GenerateFromYaml(c *ConfigYaml, threshold float64) (*Keyboard, error) {
 	layout := make(map[rune]*key.Key)
 	positions := make(map[int]map[int]int)
 
@@ -271,7 +245,7 @@ func GenerateFromYaml(c *ConfigYaml) (*Keyboard, error) {
 	}
 
 	characters := ShuffleSlice(c.CharSet)
-	err := k.RandomCharInsertSafe(characters)
+	err := k.RandomCharInsertSafe(characters, threshold)
 	if err != nil {
 		return nil, err
 	}

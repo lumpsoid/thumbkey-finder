@@ -4,7 +4,11 @@ import (
 	"tkOptimizer/internal/keyboard"
 )
 
-func GenerateKeyboards(config *KeyboardConfiguration, population int) ([]*keyboard.Keyboard, error) {
+func GenerateKeyboards(
+  config *KeyboardConfiguration, 
+  population int,
+  placeThreshold float64,
+) ([]*keyboard.Keyboard, error) {
 	height := config.Height
 	width := config.Width
 	weights := config.Weights
@@ -17,13 +21,13 @@ func GenerateKeyboards(config *KeyboardConfiguration, population int) ([]*keyboa
 
 		if len(weights) != 0 {
 			k, err = keyboard.GenerateNewWithWeights(
-				height, width, weights, charSet,
+				height, width, weights, charSet, placeThreshold,
 			)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			k, err = keyboard.GenerateNew(height, width, charSet)
+			k, err = keyboard.GenerateNew(height, width, charSet, placeThreshold)
 			if err != nil {
 				return nil, err
 			}
@@ -43,6 +47,7 @@ func TestKeyboards(k []*keyboard.Keyboard, testText string) {
 func Recombine(
   k []*keyboard.Keyboard, 
   mutationProbability float64,
+  placeThreshold float64,
 ) ([]*keyboard.Keyboard, error) {
   keyboardLen := len(k)
 	if !IsEven(keyboardLen) {
@@ -53,6 +58,7 @@ func Recombine(
 	for i := 0; i < keyboardLen; i += 2 {
 		mK, err := Recombination(
 			mutationProbability,
+      placeThreshold,
 			k[i],
 			k[i+1],
 		)
@@ -76,9 +82,9 @@ func Run(e *Evolution, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
 		e.AppendMetric(k[0].Distance)
 
 		if e.Threads == 1 {
-			k, err = Recombine(k, e.MutationProbability)
+			k, err = Recombine(k, e.MutationProbability, e.PlaceThreshold)
 		} else {
-			k, err = e.RecombineThreads(e.Threads, k)
+			k, err = RecombineThreads(e.Threads, e.MutationProbability, e.PlaceThreshold,k)
 		}
 
 		if err != nil {
@@ -95,9 +101,9 @@ func Run(e *Evolution, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
 			}
 
 			if e.Threads == 1 {
-				k, err = GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation())
+				k, err = GenerateKeyboards(e.KeyboardConfig, e.GetInitPopulation(), e.PlaceThreshold)
 			} else {
-				k, err = GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation())
+				k, err = GenerateKeyboardsThreads(e.Threads, e.KeyboardConfig, e.GetInitPopulation(), e.PlaceThreshold)
 			}
 
 			if err != nil {

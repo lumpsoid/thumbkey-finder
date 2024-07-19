@@ -16,6 +16,7 @@ func GenerateKeyboardsThreads(
   threads int, 
   config *KeyboardConfiguration, 
   population int,
+  placeThreshold float64,
 ) ([]*keyboard.Keyboard, error) {
 	jobs := make(chan int, population)
 	results := make(chan *keyboard.Keyboard, GetLenOr1000(population))
@@ -34,13 +35,13 @@ func GenerateKeyboardsThreads(
 
         if len(weights) != 0 {
           k, err = keyboard.GenerateNewWithWeights(
-            height, width, weights, charSet)
+            height, width, weights, charSet, placeThreshold)
           if err != nil {
             errorChan <- err
             return
           }
         } else {
-          k, err = keyboard.GenerateNew(height, width, charSet)
+          k, err = keyboard.GenerateNew(height, width, charSet, placeThreshold)
           if err != nil {
             errorChan <- err
             return
@@ -101,10 +102,11 @@ func recombineWorkerThreads(
 	resultChan chan<- *keyboard.Keyboard,
 	errorChan chan<- error,
 	mutationProbability float64,
+  placeThreshold float64,
 	k1 *keyboard.Keyboard,
 	k2 *keyboard.Keyboard,
 ) {
-	mergeKeyboard, err := Recombination(mutationProbability, k1, k2)
+	mergeKeyboard, err := Recombination(mutationProbability, placeThreshold, k1, k2)
 	if err != nil {
 		errorChan <- err
 		return
@@ -112,7 +114,12 @@ func recombineWorkerThreads(
 	resultChan <- mergeKeyboard
 }
 
-func (e *Evolution) RecombineThreads(threads int, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
+func RecombineThreads(
+  threads int, 
+  mutationProbability float64,
+  placeThreshold float64,
+  k []*keyboard.Keyboard,
+) ([]*keyboard.Keyboard, error) {
   kLen := len(k)
 	if !IsEven(kLen) {
 		kLen -= 1
@@ -135,7 +142,7 @@ func (e *Evolution) RecombineThreads(threads int, k []*keyboard.Keyboard) ([]*ke
 				<-semaphore // Release the semaphore slot
 			}()
 
-			mK, err := Recombination(e.MutationProbability, k1, k2)
+			mK, err := Recombination(mutationProbability, placeThreshold, k1, k2)
 			if err != nil {
 				errorChan <- err
 				return

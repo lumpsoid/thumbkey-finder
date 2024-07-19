@@ -18,6 +18,11 @@ func (p *Position) IsBelowDiagonal(height int) bool {
 	return p.Y >= float64(height) - p.X
 }
 
+func (p *Position) IsBelowHorizontal(height int) bool {
+  // Adjust the calculation to check if Y is greater than or equal to the diagonal line
+	return p.Y >= float64(height)/2
+}
+
 var mapOfCentralPositions = map[Position]bool{
 	{1, 1}: true,
 	{4, 1}: true,
