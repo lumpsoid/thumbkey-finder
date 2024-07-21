@@ -11,7 +11,6 @@ func TestRecombinationSingle(t *testing.T) {
   e, err := New(
     1,
     100000,
-    1.0,
     0.001,
     NewKeyboardConfig(
       8, 8,
@@ -40,7 +39,6 @@ func TestRecombinationThreads(t *testing.T) {
   e, err := New(
     7,
     1000000,
-    1.0,
     0.001,
     NewKeyboardConfig(
       8, 8,
@@ -69,7 +67,6 @@ func TestRunSingle(t *testing.T) {
   e, err := New(
     7,
     1000000,
-    0.2,
     0.05,
     NewKeyboardConfig(
       8, 8,

@@ -26,10 +26,10 @@ func main() {
 	}
 
 	var bestK *keyboard.Keyboard
-	var generetionCurrent []*keyboard.Keyboard
+	var generationCurrent []*keyboard.Keyboard
 
 	fmt.Println("Generating first generation...")
-	generetionCurrent, err = evolution.GenerateKeyboardsThreads(
+	generationCurrent, err = evolution.GenerateKeyboardsThreads(
 		e.Threads,
 		e.KeyboardConfig,
 		e.GetInitPopulation(),
@@ -39,7 +39,8 @@ func main() {
 		panic(err)
 	}
 
-	// initial setup of 0 generation of keyboards
+	// if we have prefered layout from yaml
+  // set up to use it as first best keyboard
 	if len(e.KeyboardConfig.Layout) != 0 {
 		fmt.Println("initial layout:")
 		kFromLayout := keyboard.NewEmpty(
@@ -59,30 +60,34 @@ func main() {
 		e.AppendDistance(kFromLayout.Distance)
 		bestK = kFromLayout
 	} else {
-		bestK = generetionCurrent[0]
+		bestK = generationCurrent[0]
 	}
 
-	evolution.TestKeyboardsThreads(e.Threads, generetionCurrent, e.TestText)
-	evolution.SortKeyboards(generetionCurrent)
-	e.AppendDistance(generetionCurrent[0].Distance)
+	evolution.TestKeyboardsThreads(e.Threads, generationCurrent, e.TestText)
+	evolution.SortKeyboards(generationCurrent)
+	e.AppendDistance(generationCurrent[0].Distance)
 
 	var endTime time.Time
 	startTime := time.Now()
 	memoryPool := make([]*keyboard.Keyboard, 0)
-	i, staleCounter := 0, 0
-	loop, ok := true, true
-	// main loop of finding optiomal keyboard
+	i, staleCounter, lastBestGeneration := 0, 0, 0
+	loop := true
+  // loop to optimize layout
 	for loop {
 		fmt.Printf(
 			//"\rGen: %d, Last metric: %.2f",
 			"\rGen: %d, Len: %d, Metric: %.2f     ",
 			i,
-			len(generetionCurrent),
+			len(generationCurrent),
 			e.GetMetricLast(),
 		)
-
-		generetionCurrent, err = evolution.RecombineWithOne(
-			generetionCurrent,
+    // recombine with current generation using best keyboard
+    // as performant variant
+    // output: same population count
+    // but with best keyboard information incorporated
+		generationCurrent, err = evolution.RecombineWithOneThreads(
+			e.Threads,
+			generationCurrent,
 			e.MutationProbability,
 			e.PlaceThreshold,
 			bestK,
@@ -90,57 +95,98 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		evolution.TestKeyboardsThreads(e.Threads, generetionCurrent, e.TestText)
-		evolution.SortKeyboards(generetionCurrent)
-		e.AppendDistance(generetionCurrent[0].Distance)
 
-		if generetionCurrent[0].Distance < bestK.Distance {
-			bestK = generetionCurrent[0]
+		evolution.TestKeyboardsThreads(e.Threads, generationCurrent, e.TestText)
+		evolution.SortKeyboards(generationCurrent)
+		e.AppendDistance(generationCurrent[0].Distance)
+
+    // if population count greater than specified minimum population in yaml
+    // recombine them between themselves 
+    // 2 parents : 1 child
+		if len(generationCurrent) > e.MinPopulation {
+			generationCurrent, err = evolution.RecombineThreads(
+				e.Threads,
+				e.MutationProbability,
+				e.PlaceThreshold,
+				generationCurrent,
+			)
+			evolution.TestKeyboardsThreads(e.Threads, generationCurrent, e.TestText)
+			evolution.SortKeyboards(generationCurrent)
+			e.AppendDistance(generationCurrent[0].Distance)
+		}
+
+		if generationCurrent[0].Distance < bestK.Distance {
+			bestK = generationCurrent[0]
 			fmt.Printf("\nDistance: %.2f\n", bestK.Distance)
+			fmt.Printf("Last best update (generations): %d\n", lastBestGeneration - i)
 			bestK.Print()
+      lastBestGeneration = i
+      
 		} else {
 			staleCounter++
 		}
 
-		if len(generetionCurrent) > e.MinPopulation {
-			generetionCurrent, ok = evolution.FilterPopulationSafe(
-				1,
-				generetionCurrent,
-				e.Percentile,
-				e.MinPopulation,
-			)
-		}
+    // reset bestK keyboard if local optimization is great
+    if i - lastBestGeneration > e.ResetThreshold  {
+			fmt.Print("\nReseting best keyboard because of the stale\n")
+      bestK = generationCurrent[0]
+      lastBestGeneration = i
+			fmt.Printf("New distance: %.2f\n", bestK.Distance)
+      bestK.Print()
 
-		if !ok || staleCounter > e.StaleThreshold {
-			if e.MinPopulation == 1 {
-				loop = false
-			}
-			if len(memoryPool) != 0 {
-				if generetionCurrent[0].Distance*1.2 < memoryPool[0].Distance {
-					memoryPool = append(memoryPool, generetionCurrent[0])
-				}
-			} else {
+    }
+
+		if staleCounter > e.StaleThreshold {
+			if len(memoryPool) == 0 {
 				memoryPool = append(memoryPool, bestK)
 			}
-			if len(memoryPool) > 10 {
+			// if keyboard's distance in current generation
+			// in 20% range from best
+			// it will saved in memory pool
 
-				transferK := make([]*keyboard.Keyboard, len(memoryPool))
-				for j, tK := range memoryPool {
-					transferK[j] = tK
-				}
-				copy(transferK, generetionCurrent)
-				memoryPool = make([]*keyboard.Keyboard, 0)
-				clear(transferK)
-			} else {
-				generetionCurrent, err = evolution.GenerateKeyboardsThreads(
+			// TODO check all current generation until >
+			// not only first
+			if generationCurrent[0].Distance < memoryPool[0].Distance*1.2 {
+				memoryPool = append(memoryPool, generationCurrent[0])
+			}
+			generationCurrent, err = evolution.GenerateKeyboardsThreads(
+				e.Threads,
+				e.KeyboardConfig,
+				e.GetInitPopulation(),
+				e.PlaceThreshold,
+			)
+			if err != nil {
+				panic(err)
+			}
+			// use memory pool to incorporate information from performant variants
+      // to random generated ones
+      // TODO make weights back propagation like technique
+			var memoryPoolBestK *keyboard.Keyboard
+
+			if len(memoryPool) >= 2 {
+				memoryPoolBest, err := evolution.RecombineThreads(
 					e.Threads,
-					e.KeyboardConfig,
-					e.GetInitPopulation(),
+					e.MutationProbability,
 					e.PlaceThreshold,
+					memoryPool,
 				)
 				if err != nil {
 					panic(err)
 				}
+				evolution.TestKeyboardsThreads(e.Threads, memoryPoolBest, e.TestText)
+				evolution.SortKeyboards(memoryPoolBest)
+			  memoryPool = memoryPoolBest
+			}
+			memoryPoolBestK = memoryPool[0]
+			generationCurrent, err = evolution.RecombineWithOneThreads(
+				e.Threads,
+				generationCurrent,
+				e.MutationProbability,
+				e.PlaceThreshold,
+				memoryPoolBestK,
+			)
+			if err != nil {
+				panic(err)
 			}
 			staleCounter = 0
 		}

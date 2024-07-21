@@ -41,11 +41,11 @@ func NewKeyboardConfig(
 type Evolution struct {
 	Threads             int
 	initPopulation      int
-	Percentile          float64
 	MinPopulation       int
 	MutationProbability float64
 	PlaceThreshold      float64
 	StaleThreshold      int
+	ResetThreshold      int
 	KeyboardConfig      *KeyboardConfiguration
 	TestText            string
 	DistanceHistory     []float64
@@ -54,7 +54,6 @@ type Evolution struct {
 func New(
 	threads int,
 	numKeyboards int,
-	persentile float64,
 	mutationProbability float64,
 	config *KeyboardConfiguration,
 	textTest string,
@@ -67,7 +66,6 @@ func New(
 		Threads:             threads,
 		initPopulation:      numKeyboards,
 		MutationProbability: mutationProbability,
-		Percentile:          persentile,
 		KeyboardConfig:      config,
 		TestText:            textTest,
 		DistanceHistory:     history,

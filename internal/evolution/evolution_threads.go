@@ -1,7 +1,7 @@
 package evolution
 
 import (
-	"fmt"
+	"errors"
 	"tkOptimizer/internal/keyboard"
 )
 
@@ -125,8 +125,7 @@ func RecombineThreads(
 		kLen -= 1
 	}
 	if kLen < 2 {
-    fmt.Println("Keyboards len < 2")
-		return k, nil
+		return k, errors.New("generation len < 2")
 	}
 
 	semaphore := make(chan int, threads)

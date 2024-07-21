@@ -74,25 +74,29 @@ func Run(e *Evolution, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
 	var err error
 	var ok bool
 
-	for len(k) > 2 {
-		existMinPopulation := e.MinPopulation != 0
+  bestK := k[0]
 
+	for len(k) > 2 {
     TestKeyboards(k, e.TestText)
     SortKeyboards(k)
 		e.AppendDistance(k[0].Distance)
 
 		if e.Threads == 1 {
-			k, err = Recombine(k, e.MutationProbability, e.PlaceThreshold)
+			k, err = RecombineWithOne(k, e.MutationProbability, e.PlaceThreshold, bestK)
 		} else {
-			k, err = RecombineThreads(e.Threads, e.MutationProbability, e.PlaceThreshold,k)
+			k, err = RecombineWithOneThreads(e.Threads, k, e.MutationProbability, e.PlaceThreshold, bestK)
 		}
 
 		if err != nil {
 			return nil, err
 		}
 
-		if existMinPopulation && len(k) > e.MinPopulation {
-			k, ok = FilterPopulationSafe(1, k, e.Percentile, e.MinPopulation)
+		if len(k) > e.MinPopulation {
+      if e.Threads == 1 {
+        k, err = Recombine(k, e.MutationProbability, e.PlaceThreshold)
+      } else {
+        k, err = RecombineThreads(e.Threads, e.MutationProbability, e.PlaceThreshold,k)
+      }
 		}
 
 		if !ok {

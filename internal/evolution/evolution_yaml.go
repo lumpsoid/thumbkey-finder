@@ -28,10 +28,10 @@ type ConfigYaml struct {
 	CharSet             string              `yaml:"characters"`
 	InitPopulation      int                 `yaml:"init_population"`
 	MinPopulation       int                 `yaml:"min_population"`
-	Percentile          float64             `yaml:"pass_percentile"`
 	MutationProbability float64             `yaml:"mutation_probability"`
 	PlaceThreshold      float64             `yaml:"place_threshold"`
 	StaleThreshold      int                 `yaml:"stale_threshold"`
+	ResetThreshold      int                 `yaml:"reset_threshold"`
 	KeyboardConfig      *KeyboardConfigYaml `yaml:"keyboard"`
 	TextPath            string              `yaml:"text_path,omitempty"`
 	Text                string              `yaml:"text,omitempty"`
@@ -76,9 +76,6 @@ func (c *ConfigYaml) Check() error {
 	if c.InitPopulation == 0 {
 		return errors.New("`init_population` must be in the config or greater than 0")
 	}
-	if c.Percentile == 0.0 {
-		return errors.New("`pass_percentile` must be in the config or greater than 0")
-	}
 	if c.MutationProbability == 0.0 {
 		return errors.New("`mutation_probability` must be in the config or greater than 0")
 	}
@@ -87,6 +84,9 @@ func (c *ConfigYaml) Check() error {
 	}
 	if c.StaleThreshold == 0 {
 		return errors.New("`stale_threshold` must be in the config or greater than 0")
+	}
+	if c.ResetThreshold == 0 {
+		return errors.New("`reset_threshold` must be in the config or greater than 0")
 	}
 	if c.KeyboardConfig.CharSet == "" {
 		return errors.New("`characters` must be in the config or greater than 0")
@@ -166,12 +166,12 @@ func FromYaml(filePath string) (*Evolution, error) {
 		Threads:             c.Threads,
 		initPopulation:      c.InitPopulation,
 		MinPopulation:       c.MinPopulation,
-		Percentile:          c.Percentile,
 		MutationProbability: c.MutationProbability,
 		PlaceThreshold:      c.PlaceThreshold,
 		StaleThreshold:      c.StaleThreshold,
+		ResetThreshold:      c.ResetThreshold,
 		KeyboardConfig:      kC,
 		TestText:            testText,
-		DistanceHistory:       make([]float64, 0),
+		DistanceHistory:     make([]float64, 0),
 	}, nil
 }
