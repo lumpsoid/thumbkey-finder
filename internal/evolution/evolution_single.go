@@ -79,7 +79,7 @@ func Run(e *Evolution, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
 
     TestKeyboards(k, e.TestText)
     SortKeyboards(k)
-		e.AppendMetric(k[0].Distance)
+		e.AppendDistance(k[0].Distance)
 
 		if e.Threads == 1 {
 			k, err = Recombine(k, e.MutationProbability, e.PlaceThreshold)
@@ -92,7 +92,7 @@ func Run(e *Evolution, k []*keyboard.Keyboard) ([]*keyboard.Keyboard, error) {
 		}
 
 		if existMinPopulation && len(k) > e.MinPopulation {
-			k, ok = FilterPopulation(k, e.Percentile, e.MinPopulation)
+			k, ok = FilterPopulationSafe(1, k, e.Percentile, e.MinPopulation)
 		}
 
 		if !ok {

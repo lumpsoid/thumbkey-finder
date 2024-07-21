@@ -45,10 +45,10 @@ type Evolution struct {
 	MinPopulation       int
 	MutationProbability float64
 	PlaceThreshold      float64
-  StaleThreshold      int
+	StaleThreshold      int
 	KeyboardConfig      *KeyboardConfiguration
 	TestText            string
-	MetricHistory       []float64
+	DistanceHistory     []float64
 }
 
 func New(
@@ -70,7 +70,7 @@ func New(
 		Percentile:          persentile,
 		KeyboardConfig:      config,
 		TestText:            textTest,
-		MetricHistory:       history,
+		DistanceHistory:     history,
 	}, nil
 }
 
@@ -170,12 +170,12 @@ func PopulationSizeNext(percentile float64, population int) int {
 	return int(math.Ceil(float64(population) * percentile))
 }
 
-func (e *Evolution) AppendMetric(result float64) {
-	e.MetricHistory = append(e.MetricHistory, result)
+func (e *Evolution) AppendDistance(result float64) {
+	e.DistanceHistory = append(e.DistanceHistory, result)
 }
 
 func (e *Evolution) GetMetricLast() float64 {
-	return e.MetricHistory[len(e.MetricHistory)-1]
+	return e.DistanceHistory[len(e.DistanceHistory)-1]
 }
 
 func IsEven(num int) bool {

@@ -66,13 +66,14 @@ func RecombineWithOneThreads(
   return variantsNew, nil
 }
 
-func FilterPopulation(
+func FilterPopulationSafe(
+  lenThreshold int,
   k []*keyboard.Keyboard, 
   percentile float64, 
   minPopulation int,
 ) ([]*keyboard.Keyboard, bool) {
   filteredNumber := PopulationSizeNext(percentile, len(k))
-  if filteredNumber <= 1 {
+  if filteredNumber <= lenThreshold {
     return k, false
   }
   if !IsEven(filteredNumber) {

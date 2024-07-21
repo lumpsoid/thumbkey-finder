@@ -172,6 +172,6 @@ func FromYaml(filePath string) (*Evolution, error) {
 		StaleThreshold:      c.StaleThreshold,
 		KeyboardConfig:      kC,
 		TestText:            testText,
-		MetricHistory:       make([]float64, 0),
+		DistanceHistory:       make([]float64, 0),
 	}, nil
 }

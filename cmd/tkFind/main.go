@@ -26,14 +26,14 @@ func main() {
 	}
 
 	var bestK *keyboard.Keyboard
-	var loopKeyboards []*keyboard.Keyboard
+	var generetionCurrent []*keyboard.Keyboard
 
 	fmt.Println("Generating first generation...")
-	loopKeyboards, err = evolution.GenerateKeyboardsThreads(
+	generetionCurrent, err = evolution.GenerateKeyboardsThreads(
 		e.Threads,
 		e.KeyboardConfig,
 		e.GetInitPopulation(),
-    e.PlaceThreshold,
+		e.PlaceThreshold,
 	)
 	if err != nil {
 		panic(err)
@@ -56,19 +56,19 @@ func main() {
 		}
 		kFromLayout.Print()
 		kFromLayout.TravelDistance(e.TestText)
-		e.AppendMetric(kFromLayout.Distance)
+		e.AppendDistance(kFromLayout.Distance)
 		bestK = kFromLayout
 	} else {
-		bestK = loopKeyboards[0]
+		bestK = generetionCurrent[0]
 	}
 
-	evolution.TestKeyboardsThreads(e.Threads, loopKeyboards, e.TestText)
-	evolution.SortKeyboards(loopKeyboards)
-	e.AppendMetric(loopKeyboards[0].Distance)
+	evolution.TestKeyboardsThreads(e.Threads, generetionCurrent, e.TestText)
+	evolution.SortKeyboards(generetionCurrent)
+	e.AppendDistance(generetionCurrent[0].Distance)
 
 	var endTime time.Time
 	startTime := time.Now()
-	accumulationK := make([]*keyboard.Keyboard, 0)
+	memoryPool := make([]*keyboard.Keyboard, 0)
 	i, staleCounter := 0, 0
 	loop, ok := true, true
 	// main loop of finding optiomal keyboard
@@ -77,34 +77,35 @@ func main() {
 			//"\rGen: %d, Last metric: %.2f",
 			"\rGen: %d, Len: %d, Metric: %.2f     ",
 			i,
-			len(loopKeyboards),
+			len(generetionCurrent),
 			e.GetMetricLast(),
 		)
 
-		loopKeyboards, err = evolution.RecombineWithOne(
-			loopKeyboards,
+		generetionCurrent, err = evolution.RecombineWithOne(
+			generetionCurrent,
 			e.MutationProbability,
-      e.PlaceThreshold,
+			e.PlaceThreshold,
 			bestK,
 		)
 		if err != nil {
 			panic(err)
 		}
-		evolution.TestKeyboardsThreads(e.Threads, loopKeyboards, e.TestText)
-		evolution.SortKeyboards(loopKeyboards)
-		e.AppendMetric(loopKeyboards[0].Distance)
+		evolution.TestKeyboardsThreads(e.Threads, generetionCurrent, e.TestText)
+		evolution.SortKeyboards(generetionCurrent)
+		e.AppendDistance(generetionCurrent[0].Distance)
 
-		if loopKeyboards[0].Distance < bestK.Distance {
-			bestK = loopKeyboards[0]
+		if generetionCurrent[0].Distance < bestK.Distance {
+			bestK = generetionCurrent[0]
 			fmt.Printf("\nDistance: %.2f\n", bestK.Distance)
 			bestK.Print()
 		} else {
-      staleCounter++
-    }
+			staleCounter++
+		}
 
-		if len(loopKeyboards) > e.MinPopulation {
-			loopKeyboards, ok = evolution.FilterPopulation(
-				loopKeyboards,
+		if len(generetionCurrent) > e.MinPopulation {
+			generetionCurrent, ok = evolution.FilterPopulationSafe(
+				1,
+				generetionCurrent,
 				e.Percentile,
 				e.MinPopulation,
 			)
@@ -114,34 +115,34 @@ func main() {
 			if e.MinPopulation == 1 {
 				loop = false
 			}
-			if len(accumulationK) != 0 {
-				if loopKeyboards[0].Distance*1.2 < accumulationK[0].Distance {
-					accumulationK = append(accumulationK, loopKeyboards[0])
+			if len(memoryPool) != 0 {
+				if generetionCurrent[0].Distance*1.2 < memoryPool[0].Distance {
+					memoryPool = append(memoryPool, generetionCurrent[0])
 				}
 			} else {
-				accumulationK = append(accumulationK, bestK)
+				memoryPool = append(memoryPool, bestK)
 			}
-			if len(accumulationK) > 10 {
+			if len(memoryPool) > 10 {
 
-				transferK := make([]*keyboard.Keyboard, len(accumulationK))
-				for j, tK := range accumulationK {
+				transferK := make([]*keyboard.Keyboard, len(memoryPool))
+				for j, tK := range memoryPool {
 					transferK[j] = tK
 				}
-				copy(transferK, loopKeyboards)
-				accumulationK = make([]*keyboard.Keyboard, 0)
+				copy(transferK, generetionCurrent)
+				memoryPool = make([]*keyboard.Keyboard, 0)
 				clear(transferK)
 			} else {
-				loopKeyboards, err = evolution.GenerateKeyboardsThreads(
+				generetionCurrent, err = evolution.GenerateKeyboardsThreads(
 					e.Threads,
 					e.KeyboardConfig,
 					e.GetInitPopulation(),
-          e.PlaceThreshold,
+					e.PlaceThreshold,
 				)
 				if err != nil {
 					panic(err)
 				}
 			}
-      staleCounter = 0
+			staleCounter = 0
 		}
 
 		i++
