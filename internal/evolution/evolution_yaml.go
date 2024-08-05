@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"tkOptimizer/internal/key"
 	"tkOptimizer/internal/layout"
@@ -73,6 +74,15 @@ func (c *ConfigYaml) GetText() (string, error) {
 }
 
 func (c *ConfigYaml) Check() error {
+	if c.Threads > runtime.NumCPU() {
+		return errors.New(
+			fmt.Sprintf(
+				"`threads` number in the config greater than cpu can handle. You specified = %d. Available = %d",
+				c.Threads,
+				runtime.NumCPU(),
+			),
+		)
+	}
 	if c.InitPopulation == 0 {
 		return errors.New("`init_population` must be in the config or greater than 0")
 	}
