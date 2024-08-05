@@ -1,0 +1,41 @@
+# for multiprocessing
+# use 1 for one threaded variant
+threads: 7
+# first generated population
+# will be 10000 layouts
+init_population: 10000
+min_population: 2
+mutation_probability: 0.2
+place_threshold: 0.9 # threshold to place a character
+# stale_threshold - after 10000 iterations
+# of an unimproving metric
+# new population will be generated 
+# with incorporated features of the best layouts so far
+stale_threshold: 10000
+# stale_threshold - after 1000000 iterations
+# of an unimproving metric
+# whole process will be started from start
+reset_threshold: 1000000
+keyboard:
+  # base 0 index number of rows and columns for the layout
+  height: 8 # for now must be 8
+  width: 8 # for now must be 8
+  characters: abcdefghijklmnopqrstuvwxyz # characters to use in the layout
+  # percentage of each place in the layout
+  # from 0 - will never place a character at this place
+  # to 1 - each time a character will be placed here
+  weights: [ 
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 0, 1, 1, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 0, 1, 1, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ]
+text_path: ./testText.txt # relative path from invocation to the file with test text
+# or you can use
+# text: onetwothreefourfive
+# will be used as a test text
