@@ -38,7 +38,7 @@ type ConfigYaml struct {
 }
 
 func sanitizeText(text string) string {
-	return strings.ReplaceAll(text, "\n", " ")
+	return strings.ReplaceAll(text, "\n", "")
 }
 
 func (c *ConfigYaml) GetText() (string, error) {
